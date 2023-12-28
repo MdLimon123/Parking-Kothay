@@ -1,10 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+import 'package:geocoding/geocoding.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:parking_kothay/Utils/custom_text_field.dart';
 import 'package:parking_kothay/Views/FindAndBookParking/Controller/find_and_book_parking_controller.dart';
-import 'package:parking_kothay/Views/GoogleMaps/google_maps_screen.dart';
+import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
+
+import '../GoogleMaps/google_maps_screen.dart';
 
 
 
@@ -105,6 +112,60 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
     }
   }
 
+  String tokenForSession = '37465';
+  late List<Location> location;
+
+  var uuid = Uuid();
+
+  List<dynamic> listForPlace = [];
+
+  void makeSuggestion(String input)async{
+    String googlePlaceApiKey = 'AIzaSyAnV5DJ0BUbVV0TwsrsJUyVeLKePmXs1YI';
+    String groundURL ='https://maps.googleapis.com/maps/api/place/autocomplete/json';
+    String request = '$groundURL?input=$input&key=$googlePlaceApiKey&sessiontoken=$tokenForSession';
+
+    var responseResult = await http.get(Uri.parse(request));
+    var resultData = responseResult.body.toString();
+
+    print('Result data');
+    print(resultData);
+
+    if(responseResult.statusCode ==200){
+      setState(() {
+        listForPlace = jsonDecode(responseResult.body.toString())['predictions'];
+
+      });
+    }else{
+      throw Exception('Showing data failed');
+    }
+
+
+  }
+
+  void onModify(){
+
+    if(tokenForSession == null){
+      setState(() {
+        tokenForSession == uuid.v4();
+
+      });
+    }
+
+    makeSuggestion(_locationController.text);
+
+  }
+
+
+  @override
+  void initState() {
+
+    super.initState();
+    _locationController.addListener(() {
+      onModify();
+    });
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -129,6 +190,7 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
               Padding(
                 padding:  EdgeInsets.symmetric(horizontal: 20.w),
                 child: Obx(()=> Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -150,6 +212,7 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
                       color: Colors.grey
                     ),),
                     SizedBox(height: 15.h,),
+
                     CustomTextField(
                       controller: _locationController,
                         hintText: 'Where would you like to park?',
@@ -158,6 +221,7 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
                     suffixIcon: const Icon(Icons.directions,color: Color(0xFF26AA75),),),
 
                     SizedBox(height: 20.h,),
+
                     TextFormField(
                       readOnly: true,
                       decoration:  InputDecoration(
@@ -195,10 +259,42 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
                     ),
                     
                     SizedBox(height: 30.h,),
+
+                    ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: listForPlace.length,
+                        itemBuilder: (context, index){
+                          return ListTile(
+                            onTap: ()async{
+                              location = await locationFromAddress(listForPlace[index]['description']);
+                              print(location.last.latitude);
+                              print(location.last.longitude);
+
+                            },
+                            title: Text(listForPlace[index]['description']),
+                          );
+                        }
+                    ),
                     
                     InkWell(
                       onTap: (){
-                        Get.to(GoogleMapsScreen());
+
+                        if(_locationController.text.isNotEmpty){
+                          Get.to(GoogleMapsScreen(
+                            lat: location.last.latitude,
+                            lng: location.last.longitude,
+                          ));
+                        }else{
+                          Get.snackbar(
+
+                              'Error', 'Please select location, Start Date time and End Date Time',
+                            colorText: Colors.red,
+                            backgroundColor: Colors.black
+                          );
+                        }
+
+                        //
                       },
                       child: Container(
                         height: 50.h,
@@ -215,7 +311,9 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
                           color: Colors.white
                         ),),
                       ),
-                    )
+                    ),
+
+
 
                   ],
                 ),

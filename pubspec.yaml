@@ -40,6 +40,11 @@ dependencies:
   get:
   google_maps_flutter:
   http:
+  geocoding:
+  geolocator:
+  uuid:
+  location:
+  google_maps_webservice:
 
 dev_dependencies:
   flutter_test:

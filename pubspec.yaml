@@ -45,6 +45,7 @@ dependencies:
   uuid:
   location:
   google_maps_webservice:
+  permission_handler:
 
 dev_dependencies:
   flutter_test:

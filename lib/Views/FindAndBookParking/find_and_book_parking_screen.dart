@@ -6,11 +6,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+
+
 import 'package:parking_kothay/Utils/custom_text_field.dart';
 import 'package:parking_kothay/Views/FindAndBookParking/Controller/find_and_book_parking_controller.dart';
 import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
-
 import '../GoogleMaps/google_maps_screen.dart';
 
 
@@ -26,6 +28,8 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
 
   final _findAndBookController = Get.put(FindAndBookParkingController());
   final _locationController = TextEditingController();
+
+
 
   DateTime? selectedStartDateTime;
 
@@ -163,6 +167,25 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
     _locationController.addListener(() {
       onModify();
     });
+
+    checkPermission(Permission.location, context);
+  }
+
+
+
+
+
+  Future<void> checkPermission(Permission permission, BuildContext context)async{
+
+    final status = await permission.request();
+
+    if(status.isGranted){
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Permission is Granted')));
+    }else{
+
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Permission is not Granted')));
+
+    }
   }
 
 

@@ -22,14 +22,17 @@ class GoogleMapsScreen extends StatefulWidget {
 class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
   
   final Completer<GoogleMapController> _controller = Completer<GoogleMapController>();
+  GoogleMapController? mapController;
   
   static const CameraPosition _kGooglePlex = CameraPosition(target: LatLng(23.8041, 90.4152),
   zoom: 15);
 
   final List<Marker> myMarker = [];
- location.Location  _location = location.Location();
+ final location.Location  _location = location.Location();
  LatLng? _currentLocation;
-  List<Marker> _parkingMarkers = [];
+ final List<Marker> _parkingMarkers = [];
+
+ final places = GoogleMapsPlaces(apiKey: apiKey);
 
    final List<Marker> markerList = const[
      Marker(markerId: MarkerId('First'),
@@ -87,9 +90,6 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
    }
 
    Future<void> _showParkingDetailsDialog(String title, String price)async{
-
-
-
      return showDialog(
          context: context,
          builder: (BuildContext context){
@@ -105,9 +105,9 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
                    ],
                  ),
                  SizedBox(height: 10.h,),
-                 const Text('Availbility: Open 24/7'),
+                 const Text('Availability: Open 24/7'),
                  SizedBox(height: 10.h,),
-                 const Text('Distance: 12 mins')
+                 const Text('Distance: 12 min')
 
                ],
              ),
@@ -182,6 +182,35 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
          end.latitude, end.longitude);
    }
 
+
+ Set<Marker> _markers = {};
+
+   Future<void> findParkingSport(LatLng target)async{
+     final response = await places.searchNearbyWithRadius(
+         Location(lat: target.latitude, lng: target.longitude),
+         500,
+       type: 'parking'
+     );
+
+     if(response.status == 'OK'){
+       for(PlacesSearchResult result in response.results){
+
+         final location = result.geometry!.location;
+         final parkingSpot = LatLng(location.lat, location.lng);
+
+         setState(() {
+           _markers.add(
+             Marker(markerId: MarkerId(result.placeId),
+             position: parkingSpot,
+             infoWindow: InfoWindow(title: result.name, snippet: 'Parking Spot'),
+             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure))
+           );
+         });
+       }
+     }
+
+   }
+
   @override
   void initState() {
 
@@ -234,16 +263,23 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.location_searching),
         onPressed: ()async{
-          GoogleMapController controller = await _controller.future;
-          controller.animateCamera(CameraUpdate.newCameraPosition(
-             CameraPosition(target: LatLng(widget.lat, widget.lng),
-                zoom: 15)
-          ));
+          // GoogleMapController controller = await _controller.future;
+          // controller.animateCamera(CameraUpdate.newCameraPosition(
+          //    CameraPosition(target: LatLng(widget.lat, widget.lng),
+          //       zoom: 15)
+          // ));
+          // setState(() {
+          //   print(widget.lat);
+          //   print(widget.lng);
+          //
+          // });
           setState(() {
-            print(widget.lat);
-            print(widget.lng);
+            findParkingSport(_kGooglePlex.target);
 
           });
+
+
+
         },
       ),
     );

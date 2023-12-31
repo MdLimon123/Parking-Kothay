@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:parking_kothay/Views/FindAndBookParking/find_and_book_parking_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 

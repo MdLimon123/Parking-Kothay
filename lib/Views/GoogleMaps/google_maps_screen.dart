@@ -7,6 +7,7 @@ import 'package:google_maps_webservice/places.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart' as location;
+import 'package:parking_kothay/Models/parking_space_model.dart';
 import 'package:parking_kothay/Utils/constants.dart';
 
 class GoogleMapsScreen extends StatefulWidget {
@@ -21,53 +22,64 @@ class GoogleMapsScreen extends StatefulWidget {
 
 class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
   
-  final Completer<GoogleMapController> _controller = Completer<GoogleMapController>();
-  GoogleMapController? mapController;
+   final Completer<GoogleMapController> _controller = Completer<GoogleMapController>();
+ late GoogleMapController mapController;
   
   static const CameraPosition _kGooglePlex = CameraPosition(target: LatLng(23.8041, 90.4152),
   zoom: 15);
 
-  final List<Marker> myMarker = [];
+  Position? currentLocation;
+
+  List<ParkingSpace> parkingSpace = [
+    ParkingSpace(id: 1, location: LatLng(23.8041, 90.4152),soldOut: false),
+  ParkingSpace(id: 2, location: LatLng(23.87438393146338, 90.38940308939185), soldOut: true),
+  ParkingSpace(id: 3, location: LatLng(23.787072032053537, 90.41503065048066),soldOut: false),
+  ParkingSpace(id: 4, location: LatLng(23.77780648149767, 90.40508022903357),soldOut: false)
+  ];
+
+  //final List<Marker> myMarker = [];
  final location.Location  _location = location.Location();
  LatLng? _currentLocation;
  final List<Marker> _parkingMarkers = [];
 
  final places = GoogleMapsPlaces(apiKey: apiKey);
 
-   final List<Marker> markerList = const[
-     Marker(markerId: MarkerId('First'),
-      position: LatLng(23.8041, 90.4152),
-      infoWindow: InfoWindow(
-        title: 'My Position'
-      ),
-
-    ),
-     Marker(markerId: MarkerId('Second'),
-      position: LatLng(23.87438393146338, 90.38940308939185),
-      infoWindow: InfoWindow(
-          title: 'Uttara'
-      ),
-
-    ),
-
-    Marker(markerId: MarkerId('Third'),
-      position: LatLng(23.787072032053537, 90.41503065048066),
-      infoWindow: InfoWindow(
-          title: 'Gulshan-1'
-      ),
-
-    ),
-    Marker(markerId: MarkerId('Four'),
-      position: LatLng(23.77780648149767, 90.40508022903357),
-      infoWindow: InfoWindow(
-          title: 'Mohakhali'
-      ),
-
-    ),
-  ];
+   // final List<Marker> markerList = const[
+   //   Marker(markerId: MarkerId('First'),
+   //    position: LatLng(23.8041, 90.4152),
+   //    infoWindow: InfoWindow(
+   //      title: 'My Position'
+   //    ),
+   //
+   //  ),
+   //
+   //  //  Marker(markerId: MarkerId('Second'),
+   //  //   position: LatLng(23.87438393146338, 90.38940308939185),
+   //  //   infoWindow: InfoWindow(
+   //  //       title: 'Uttara'
+   //  //   ),
+   //  //
+   //  // ),
+   //  // Marker(markerId: MarkerId('Third'),
+   //  //   position: LatLng(23.787072032053537, 90.41503065048066),
+   //  //   infoWindow: InfoWindow(
+   //  //       title: 'Gulshan-1'
+   //  //   ),
+   //  //
+   //  // ),
+   //  // Marker(markerId: MarkerId('Four'),
+   //  //   position: LatLng(23.77780648149767, 90.40508022903357),
+   //  //   infoWindow: InfoWindow(
+   //  //       title: 'Mohakhali'
+   //  //   ),
+   //  //
+   //  // ),
+   //
+   //
+   // ];
 
    Set<Circle> _circles = {};
-   double _radius = 5000;
+
 
    // void _createCircle(){
    //   _circles = {
@@ -115,11 +127,11 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
                TextButton(onPressed: (){
                  Navigator.pop(context);
                },
-                   child: Text('Book Now')),
+                   child: const Text('Book Now')),
                TextButton(onPressed: (){
                  Navigator.pop(context);
                },
-                   child: Text('Cancel')),
+                   child: const Text('Cancel')),
              ],
            );
          });
@@ -183,7 +195,7 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
    }
 
 
- Set<Marker> _markers = {};
+ final Set<Marker> _markers = {};
 
    Future<void> findParkingSport(LatLng target)async{
      final response = await places.searchNearbyWithRadius(
@@ -215,8 +227,85 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
   void initState() {
 
     super.initState();
-    _getLocation();
-    myMarker.addAll(markerList);
+    //_getLocation();
+   // myMarker.addAll(markerList);
+    
+    _getCurrentLocation();
+  }
+  
+  
+  void _addMarkerForNearestParkingSpace(Position currentLocation){
+     ParkingSpace parkingSpace = findNearestParkingSpace(currentLocation);
+
+     _markers.clear();
+     _circles.clear();
+
+     _markers.add(
+       Marker(markerId: MarkerId(parkingSpace.id.toString()),
+         position: parkingSpace.location,
+         infoWindow: InfoWindow(
+           title: 'Parking Space ${parkingSpace.id}',
+           snippet:parkingSpace.soldOut? 'Sold Out': 'Available'
+         ),
+         icon:parkingSpace.soldOut? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed)
+             :BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen)
+       )
+     );
+
+     // Add circle
+
+    _circles.add(
+      Circle(circleId: CircleId(parkingSpace.id.toString()),
+        center: parkingSpace.location,
+        radius: 500.0,
+        fillColor: Colors.blue.withOpacity(0.2),
+        strokeColor: Colors.green,
+        strokeWidth: 2
+      )
+    );
+
+  }
+
+  void _onMapCreated(GoogleMapController controller){
+     setState(() {
+       mapController = controller;
+
+       if(currentLocation !=null){
+         _addMarkerForNearestParkingSpace(currentLocation!);
+       }
+     });
+  }
+  
+  ParkingSpace findNearestParkingSpace(Position currentLocation){
+     ParkingSpace nearestSpace = parkingSpace[0];
+     double minDistance = double.infinity;
+     
+     for(var space in parkingSpace){
+       double distance = Geolocator.distanceBetween(
+           currentLocation.latitude,
+           currentLocation.longitude,
+           space.location.latitude, 
+           space.location.longitude);
+       
+       if(distance < minDistance){
+         minDistance = distance;
+         nearestSpace = space;
+       }
+     }
+     
+     return nearestSpace;
+     
+  }
+  
+  void _getCurrentLocation()async{
+     try{
+       Position position = await Geolocator.getCurrentPosition();
+       setState(() {
+         currentLocation = position;
+       });
+     }catch(e){
+       print('Error getting location $e');
+     }
   }
 
   @override
@@ -237,23 +326,23 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
       ),
       body: Column(
         children: [
-         _currentLocation == null?const Center(child: CircularProgressIndicator(),): SizedBox(
+         currentLocation == null?const Center(child: CircularProgressIndicator(),): SizedBox(
             height: 400.h,
             child: GoogleMap(
               mapType: MapType.normal,
-                markers: Set.from(_parkingMarkers),
+               //markers: Set.from(_parkingMarkers),
                 initialCameraPosition: CameraPosition(
-                  target: _currentLocation!,
+                  target: LatLng(currentLocation?.latitude ?? 0.0, currentLocation?.longitude ?? 0.0),
                   zoom: 15
                 ),
-              onMapCreated: (GoogleMapController controller){
-                setState(() {
-                  _controller.complete(controller);
-                  _fetchParkingLocations();
-                });
+              onMapCreated: _onMapCreated,
 
-
-              },
+                //   (GoogleMapController controller){
+                // setState(() {
+                //   _controller.complete(controller);
+                //   _fetchParkingLocations();
+                // });
+                markers: _markers,
               circles:_circles
             ),
           )

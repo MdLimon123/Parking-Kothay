@@ -1,13 +1,9 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
 import 'package:geocoding/geocoding.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-
-
 import 'package:parking_kothay/Utils/custom_text_field.dart';
 import 'package:parking_kothay/Views/FindAndBookParking/Controller/find_and_book_parking_controller.dart';
 import 'package:http/http.dart' as http;

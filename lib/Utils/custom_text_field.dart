@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CustomTextField extends StatelessWidget {
-   CustomTextField({super.key, required this.hintText, this.controller,this.suffixIcon, this.prifixIcon});
+   CustomTextField({super.key, required this.hintText, this.controller,this.suffixIcon, this.prifixIcon, this.onTap, this.onChanged});
 
   String hintText;
   TextEditingController? controller;
   Widget? suffixIcon;
   Widget? prifixIcon;
+  void Function()? onTap;
+   void Function(String)? onChanged;
 
 
   @override
@@ -19,6 +21,8 @@ class CustomTextField extends StatelessWidget {
       ),
       child: TextFormField(
         controller: controller,
+        onChanged:onChanged,
+        onTap:onTap ,
         decoration: InputDecoration(
           fillColor: Colors.transparent,
           filled: true,

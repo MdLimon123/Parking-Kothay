@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
@@ -9,12 +8,14 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart' as location;
 import 'package:parking_kothay/Models/parking_space_model.dart';
 import 'package:parking_kothay/Utils/constants.dart';
+import 'package:parking_kothay/Views/FindAndBookParking/Controller/find_and_book_parking_controller.dart';
+import 'package:parking_kothay/marker_services.dart';
 
 class GoogleMapsScreen extends StatefulWidget {
-   GoogleMapsScreen({super.key, required this.lat, required this.lng});
+    GoogleMapsScreen({super.key, required this.lat, required this.lng});
 
-   double lat;
-   double lng;
+double lat;
+double lng;
 
   @override
   State<GoogleMapsScreen> createState() => _GoogleMapsScreenState();
@@ -24,74 +25,78 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
   
    final Completer<GoogleMapController> _controller = Completer<GoogleMapController>();
  late GoogleMapController mapController;
+
+ final _findAndBookingController = Get.put(FindAndBookParkingController());
   
   static const CameraPosition _kGooglePlex = CameraPosition(target: LatLng(23.8041, 90.4152),
   zoom: 15);
 
   Position? currentLocation;
 
+
+
   List<ParkingSpace> parkingSpace = [
-    ParkingSpace(id: 1, location: LatLng(23.8041, 90.4152),soldOut: false),
-  ParkingSpace(id: 2, location: LatLng(23.87438393146338, 90.38940308939185), soldOut: true),
-  ParkingSpace(id: 3, location: LatLng(23.787072032053537, 90.41503065048066),soldOut: false),
-  ParkingSpace(id: 4, location: LatLng(23.77780648149767, 90.40508022903357),soldOut: false)
+    ParkingSpace(id: 1, location: const LatLng(23.8041, 90.4152),soldOut: true),
+  ParkingSpace(id: 2, location: const LatLng(23.87438393146338, 90.38940308939185), soldOut: true),
+  ParkingSpace(id: 3, location: const LatLng(23.787072032053537, 90.41503065048066),soldOut: true),
+  ParkingSpace(id: 4, location: const LatLng(23.77780648149767, 90.40508022903357),soldOut: true)
   ];
 
-  //final List<Marker> myMarker = [];
+  final List<Marker> myMarker = [];
  final location.Location  _location = location.Location();
  LatLng? _currentLocation;
  final List<Marker> _parkingMarkers = [];
 
  final places = GoogleMapsPlaces(apiKey: apiKey);
 
-   // final List<Marker> markerList = const[
-   //   Marker(markerId: MarkerId('First'),
-   //    position: LatLng(23.8041, 90.4152),
-   //    infoWindow: InfoWindow(
-   //      title: 'My Position'
-   //    ),
-   //
-   //  ),
-   //
-   //  //  Marker(markerId: MarkerId('Second'),
-   //  //   position: LatLng(23.87438393146338, 90.38940308939185),
-   //  //   infoWindow: InfoWindow(
-   //  //       title: 'Uttara'
-   //  //   ),
-   //  //
-   //  // ),
-   //  // Marker(markerId: MarkerId('Third'),
-   //  //   position: LatLng(23.787072032053537, 90.41503065048066),
-   //  //   infoWindow: InfoWindow(
-   //  //       title: 'Gulshan-1'
-   //  //   ),
-   //  //
-   //  // ),
-   //  // Marker(markerId: MarkerId('Four'),
-   //  //   position: LatLng(23.77780648149767, 90.40508022903357),
-   //  //   infoWindow: InfoWindow(
-   //  //       title: 'Mohakhali'
-   //  //   ),
-   //  //
-   //  // ),
-   //
-   //
-   // ];
+   final List<Marker> markerList = const[
+     Marker(markerId: MarkerId('First'),
+      position: LatLng(23.8041, 90.4152),
+      infoWindow: InfoWindow(
+        title: 'My Position'
+      ),
+
+    ),
+
+    //  Marker(markerId: MarkerId('Second'),
+    //   position: LatLng(23.87438393146338, 90.38940308939185),
+    //   infoWindow: InfoWindow(
+    //       title: 'Uttara'
+    //   ),
+    //
+    // ),
+    // Marker(markerId: MarkerId('Third'),
+    //   position: LatLng(23.787072032053537, 90.41503065048066),
+    //   infoWindow: InfoWindow(
+    //       title: 'Gulshan-1'
+    //   ),
+    //
+    // ),
+    // Marker(markerId: MarkerId('Four'),
+    //   position: LatLng(23.77780648149767, 90.40508022903357),
+    //   infoWindow: InfoWindow(
+    //       title: 'Mohakhali'
+    //   ),
+    //
+    // ),
+
+
+   ];
 
    Set<Circle> _circles = {};
 
 
-   // void _createCircle(){
-   //   _circles = {
-   //     Circle(
-   //       circleId: CircleId('First'),
-   //       radius: _radius,
-   //       fillColor: Colors.blue.withOpacity(0.3),
-   //       strokeColor: Colors.blue,
-   //       strokeWidth: 2
-   //     )
-   //   };
-   // }
+   void _createCircle(){
+     _circles = {
+       Circle(
+         circleId: CircleId('First'),
+         radius: 500,
+         fillColor: Colors.blue.withOpacity(0.3),
+         strokeColor: Colors.blue,
+         strokeWidth: 2
+       )
+     };
+   }
 
    Future<void> _getLocation()async{
     location.LocationData locationData = await _location.getLocation();
@@ -140,7 +145,7 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
    Future<void> _fetchParkingLocations()async{
      final place = GoogleMapsPlaces(apiKey: apiKey);
      final response = await place.searchNearbyWithRadius(
-        Location(lat: _currentLocation!.latitude, lng: _currentLocation!.longitude),
+        Location(lat: widget.lat, lng: widget.lng),
          500,
      type: 'parking');
 
@@ -158,10 +163,10 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
            String marketTitle = place.name;
            String infoWindowText = '$marketTitle\n$parkingPrice';
            _parkingMarkers.add(
-             Marker(markerId: MarkerId(place.placeId),
-             position: LatLng(place.geometry!.location.lat, place.geometry!.location.lng),
+             Marker(markerId: MarkerId(widget.lat.toString()+widget.lng.toString()),
+             position: LatLng(widget.lat, widget.lng),
              infoWindow: InfoWindow(title: marketTitle, snippet: 'Tap to view details'),
-             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
+             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
                onTap: (){
 
                _showParkingDetailsDialog(marketTitle, parkingPrice);
@@ -173,8 +178,8 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
          }
          _circles = {
            Circle(
-             circleId: const CircleId('ParkingRadius'),
-             center: _currentLocation!,
+             circleId:  CircleId(widget.lat.toString()+widget.lng.toString()),
+             center: LatLng(widget.lat,widget.lng),
              radius: 500,
              fillColor: const Color(0xFF26AA75).withOpacity(0.3),
              strokeWidth: 2,
@@ -197,9 +202,11 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
 
  final Set<Marker> _markers = {};
 
-   Future<void> findParkingSport(LatLng target)async{
+   final markerService = MarkerService();
+
+   Future<void> findParkingSport(Position currentLocation)async{
      final response = await places.searchNearbyWithRadius(
-         Location(lat: target.latitude, lng: target.longitude),
+         Location(lat: currentLocation.latitude, lng: currentLocation.longitude),
          500,
        type: 'parking'
      );
@@ -215,7 +222,10 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
              Marker(markerId: MarkerId(result.placeId),
              position: parkingSpot,
              infoWindow: InfoWindow(title: result.name, snippet: 'Parking Spot'),
-             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure))
+             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+               onTap: (){}
+             ),
+
            );
          });
        }
@@ -227,10 +237,9 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
   void initState() {
 
     super.initState();
-    //_getLocation();
-   // myMarker.addAll(markerList);
-    
-    _getCurrentLocation();
+    _getLocation();
+   myMarker.addAll(markerList);
+
   }
   
   
@@ -317,7 +326,7 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
             onPressed: (){
               Get.back();
             },
-            icon: const Icon(Icons.arrow_back)),
+            icon: const Icon(Icons.arrow_back, color: Colors.white,)),
         title: Text('Pick Parking slot',style: TextStyle(
           fontSize: 20.sp,
           fontWeight: FontWeight.w800
@@ -326,26 +335,57 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
       ),
       body: Column(
         children: [
-         currentLocation == null?const Center(child: CircularProgressIndicator(),): SizedBox(
+         _currentLocation == null?const Center(child: CircularProgressIndicator(),): SizedBox(
             height: 400.h,
             child: GoogleMap(
               mapType: MapType.normal,
-               //markers: Set.from(_parkingMarkers),
+              markers: Set.from(_parkingMarkers),
                 initialCameraPosition: CameraPosition(
-                  target: LatLng(currentLocation?.latitude ?? 0.0, currentLocation?.longitude ?? 0.0),
+                  //target: LatLng(_currentLocation?.latitude ?? 0.0, _currentLocation?.longitude ?? 0.0),
+                 target: LatLng(widget.lat, widget.lng),
                   zoom: 15
                 ),
-              onMapCreated: _onMapCreated,
+              zoomControlsEnabled: false,
+              compassEnabled: false,
+              indoorViewEnabled: true,
+              mapToolbarEnabled: false,
+              minMaxZoomPreference: const MinMaxZoomPreference(0,16),
+              onMapCreated:
 
-                //   (GoogleMapController controller){
-                // setState(() {
-                //   _controller.complete(controller);
-                //   _fetchParkingLocations();
-                // });
-                markers: _markers,
+                  (GoogleMapController controller){
+                setState(() {
+                  _controller.complete(controller);
+                  _fetchParkingLocations();
+                });},
+                // markers: {
+                // Marker(markerId: MarkerId('1'),
+                //   icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed)
+                // )
+                // },
               circles:_circles
             ),
           )
+
+          // Obx((){
+          //   if(_findAndBookingController.searchResult.isEmpty){
+          //     return const Center(child: Text('No Parking slot'),);
+          //   }else{
+          //     return Expanded(
+          //       child: GoogleMap(
+          //           initialCameraPosition: CameraPosition(
+          //             target: LatLng(
+          //               _findAndBookingController.searchResult[0].geometry.location.lat,
+          //               _findAndBookingController.searchResult[0].geometry.location.lng
+          //             ),
+          //             zoom: 14.0
+          //           ),
+          //         markers: _findAndBookingController.getMarkers(),
+          //
+          //       ),
+          //     );
+          //   }
+          // })
+
         ],
       ),
 
@@ -362,10 +402,10 @@ class _GoogleMapsScreenState extends State<GoogleMapsScreen> {
           //   print(widget.lng);
           //
           // });
-          setState(() {
-            findParkingSport(_kGooglePlex.target);
-
-          });
+          // setState(() {
+          //   findParkingSport(_kGooglePlex);
+          //
+          // });
 
 
 

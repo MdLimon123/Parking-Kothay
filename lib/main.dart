@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:parking_kothay/Views/FindAndBookParking/find_and_book_parking_screen.dart';
+import 'package:parking_kothay/Views/HomeScreen/home_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

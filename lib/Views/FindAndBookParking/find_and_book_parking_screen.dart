@@ -4,12 +4,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+
 import 'package:parking_kothay/Utils/custom_text_field.dart';
 import 'package:parking_kothay/Views/FindAndBookParking/Controller/find_and_book_parking_controller.dart';
 import 'package:http/http.dart' as http;
+import 'package:parking_kothay/Views/GoogleMaps/google_maps_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
-import '../GoogleMaps/google_maps_screen.dart';
 
 
 
@@ -118,11 +119,13 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
   var uuid = Uuid();
 
   List<dynamic> listForPlace = [];
+  List<dynamic> searchResult = [];
 
   void makeSuggestion(String input)async{
     String googlePlaceApiKey = 'AIzaSyAnV5DJ0BUbVV0TwsrsJUyVeLKePmXs1YI';
     String groundURL ='https://maps.googleapis.com/maps/api/place/autocomplete/json';
     String request = '$groundURL?input=$input&key=$googlePlaceApiKey&sessiontoken=$tokenForSession';
+    String baseUrl = 'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=bangladesh&type=parking&rankby=distance&key=AIzaSyAnV5DJ0BUbVV0TwsrsJUyVeLKePmXs1YI&sessiontoken=37465&keyword=$input';
 
     var responseResult = await http.get(Uri.parse(request));
     var resultData = responseResult.body.toString();
@@ -140,6 +143,25 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
     }
 
 
+  }
+  
+  
+  void searchPlaces(String place)async{
+    
+    List<dynamic> result = [];
+    if(place.isEmpty){
+      setState(() {
+        result = listForPlace;
+      });
+     
+    }else{
+      result = listForPlace.where((element) => element['description'].
+      toString().toLowerCase().contains(place.toLowerCase())).toList();
+    }
+    setState(() {
+      searchResult = result;
+    });
+    
   }
 
   void onModify(){
@@ -163,6 +185,8 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
     _locationController.addListener(() {
       onModify();
     });
+    
+    searchResult = listForPlace;
 
     checkPermission(Permission.location, context);
   }
@@ -211,6 +235,8 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
                 child: Obx(()=> Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+
+                    // selected button
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -224,6 +250,7 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
                       ],
                     ),
                     SizedBox(height: 10.h,),
+                    // change text
                     Text(_findAndBookController.selectOption.value? 'Book a parking space on a rolling monthly subscription':'Book a parking space on a one-off basis. Starting from half an hour.',
                     style: TextStyle(
                       fontWeight: FontWeight.w300,
@@ -232,12 +259,27 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
                     ),),
                     SizedBox(height: 15.h,),
 
-                    CustomTextField(
-                      controller: _locationController,
-                        hintText: 'Where would you like to park?',
-                    prifixIcon: const Icon(Icons.location_on,
-                    color: Colors.grey,),
-                    suffixIcon: const Icon(Icons.directions,color: Color(0xFF26AA75),),),
+                 CustomTextField(
+                        controller: _locationController,
+                        onChanged: (value){
+
+
+                        },
+                       // onChanged: (value)=> searchPlaces(value),
+                        //controller: _findAndBookController.searchController,
+                          onTap: (){
+                          // _findAndBookController
+                          //     .searchParkingSlot(_findAndBookController.searchController.text);
+
+
+                            makeSuggestion(_locationController.text);
+
+                          },
+                          hintText: 'Where would you like to park?',
+                      prifixIcon: const Icon(Icons.location_on,
+                      color: Colors.grey,),
+                      suffixIcon: const Icon(Icons.directions,color: Color(0xFF26AA75),),),
+
 
                     SizedBox(height: 20.h,),
 
@@ -282,6 +324,7 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
                     ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
+                       // itemCount: _findAndBookController.searchResult.length,
                         itemCount: listForPlace.length,
                         itemBuilder: (context, index){
                           return ListTile(
@@ -289,9 +332,12 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
                               location = await locationFromAddress(listForPlace[index]['description']);
                               print(location.last.latitude);
                               print(location.last.longitude);
-
+                             // print(_findAndBookController.searchResult[index].name);
                             },
-                            title: Text(listForPlace[index]['description']),
+                            title:
+                            //Text(_findAndBookController.searchResult[index].name),
+                             Text(listForPlace[index]['description']),
+                            //subtitle: Text(_findAndBookController.searchResult[index].types[0].toString()),
                           );
                         }
                     ),
@@ -304,7 +350,14 @@ class _FindAndBookParkingScreenState extends State<FindAndBookParkingScreen> {
                             lat: location.last.latitude,
                             lng: location.last.longitude,
                           ));
-                        }else{
+                        }
+
+                        // if(_findAndBookController.searchController.text.isNotEmpty){
+                        //  Get.to(GoogleMapsScreen());
+
+
+
+                        else{
                           Get.snackbar(
 
                               'Error', 'Please select location, Start Date time and End Date Time',

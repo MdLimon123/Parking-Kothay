@@ -46,6 +46,7 @@ dependencies:
   location:
   google_maps_webservice:
   permission_handler:
+  flutter_rating_bar:
 
 dev_dependencies:
   flutter_test:
